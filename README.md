@@ -4,4 +4,5 @@
 - KVM/QEMU
 - Docker
 - LXC
+- debootstrap-chroot-unshare
 
