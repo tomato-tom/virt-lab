@@ -2,11 +2,11 @@
 
 virt-install \
   --name my-vyos \
-  --memory 2048 \
+  --memory 4096 \
   --vcpus 2 \
-  --cdrom $HOME/Downloads/vyos-1.5-rolling-202411190447-generic-amd64.iso \
+  --location ~/Downloads/debian-12.9.0-amd64-netinst.iso \
   --os-variant debian12 \
-  --disk size=10 \
+  --disk size=20 \
   --console pty,target_type=serial \
   --graphics none \
   --autostart
