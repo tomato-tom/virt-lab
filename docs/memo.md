@@ -26,15 +26,17 @@
 │   └── libvirt_domain.py
 ├── logs
 ├── nspawn
-│   ├── deboot_template.sh
-│   ├── run_container.sh
-│   └── ubuntu_update.sh
+│   ├── create_container.sh
+│   ├── create_rootfs.sh
+│   ├── custom.conf
+│   └── default.conf
 ├── README.md
 └── setup
     ├── install_kvm_qemu_libvirt.sh
     └── uninstall_kvm.sh
 
-とにかくKVMでやって、nspawn, dockerとかは他でやってVM内にクローンして使うか。
+
+とにかくKVMとnspawnでやって、dockerとかは他でやってVM内にクローンして使うか。
 基本的なVMの作成、削除、クローンなどできたら、そのスクリプトを組み合わせてexamples内に単一あるいは複数のVMスクリプトを作成
 
 初期段階でapt-cacher-ng構築しとけば、その後のVM作成時のキャッシュ利用などに使える。
