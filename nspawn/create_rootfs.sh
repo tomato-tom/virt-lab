@@ -4,6 +4,8 @@
 # カスタム設定するには引数でファイル指定
 # ./create_rootfs.sh [ <custom config> ]
 
+set -euo pipefail
+
 # Install debootstrap if not exists
 if ! command -v debootstrap &> /dev/null; then
     echo "debootstrap not found, installing..."
@@ -12,12 +14,12 @@ fi
 
 # Load configuration
 [ -f ./default.conf ] && source ./default.conf || exit 1
-[ $1 ] && source $1
+[ "${1:-}" ] && source "$1"
 
 WORK_DIR="/tmp/$DISTRO-base-rootfs"
 SIZE=1G
-TARBALL="$DISTRO-base-rootfs.tar.gz"
 IMAGE_DIR="/srv/nspawn_images"
+TARBALL="$IMAGE_DIR/$DISTRO-base-rootfs.tar.gz"
 HOSTNAME=$DISTRO
 
 echo Creating rootfs...
@@ -40,7 +42,6 @@ sudo chroot $WORK_DIR bash -c "echo $HOSTNAME > /etc/hostname"
 echo Creating tarball...
 
 sudo mkdir -p $IMAGE_DIR
-cd $IMAGE_DIR
 [ -f $TARBALL ] && sudo rm $TARBALL
 
 sudo tar -czf $TARBALL -C $WORK_DIR . && \
