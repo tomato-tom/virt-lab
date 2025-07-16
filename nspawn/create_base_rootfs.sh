@@ -29,11 +29,9 @@ mkdir $WORK_DIR
 sudo mount -t tmpfs -o size=$SIZE tmpfs $WORK_DIR
 
 sudo debootstrap \
-    --arch=$ARCH \
     --include=$INCLUDE_PACKAGES \
     $DISTRO \
-    $WORK_DIR \
-    $MIRROR
+    $WORK_DIR
 
 echo Initial settings...
 echo "root:root" | sudo chroot $WORK_DIR chpasswd
