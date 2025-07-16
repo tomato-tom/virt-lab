@@ -6,14 +6,28 @@
 
 set -euo pipefail
 
+if [ -f ../lib/logger.sh ]; then
+    source ../lib/logger.sh $0
+else
+    echo This script neads logger.sh
+    exit 1
+fi
+
 # Install debootstrap if not exists
 if ! command -v debootstrap &> /dev/null; then
-    echo "debootstrap not found, installing..."
+    log warn "debootstrap not found, installing..."
     sudo apt-get update && sudo apt-get install -y debootstrap
 fi
 
 # Load configuration
-[ -f ./default.conf ] && source ./default.conf || exit 1
+if [ -f ./default.conf ]; then
+    source ./default.conf
+    log info "Load default.conf"
+else
+    log error "This script neads default.conf"
+    exit 1
+fi
+
 [ "${1:-}" ] && source "$1"
 
 WORK_DIR="/tmp/$DISTRO-base-rootfs"
@@ -22,7 +36,7 @@ IMAGE_DIR="/srv/nspawn_images"
 TARBALL="$IMAGE_DIR/$DISTRO-base-rootfs.tar.gz"
 HOSTNAME=$DISTRO
 
-echo Creating rootfs...
+log info "Creating rootfs..."
 
 [ -d $WORK_DIR ] && rm -rf $WORK_DIR
 mkdir $WORK_DIR
@@ -33,19 +47,19 @@ sudo debootstrap \
     $DISTRO \
     $WORK_DIR
 
-echo Initial settings...
+log info "Initial settings..."
 echo "root:root" | sudo chroot $WORK_DIR chpasswd
 sudo chroot $WORK_DIR bash -c "echo $HOSTNAME > /etc/hostname"
 
-echo Creating tarball...
+log info "Creating tarball..."
 
 sudo mkdir -p $IMAGE_DIR
 [ -f $TARBALL ] && sudo rm $TARBALL
 
 sudo tar -czf $TARBALL -C $WORK_DIR . && \
-echo "Base rootfs created: $TARBALL"
+log info "Base rootfs created: $TARBALL"
 
 # Cleanup
-sudo umount $WORK_DIR
-sudo rm -rf $WORK_DIR
+sudo umount "$WORK_DIR" || log error "Error: Failed to unmount $WORK_DIR" >&2
+sudo rm -rf "$WORK_DIR" || log error "Error: Failed to remove $WORK_DIR" >&2
 
