@@ -1,6 +1,6 @@
 # Create VM
 
-frot:
+from:
     qcow2
     raw
     iso
