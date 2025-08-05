@@ -2,7 +2,7 @@
 
 # base-rootfsよりコンテナ作成
 
-if [ -f ../lib/logger.sh ]:then
+if [ -f ../lib/logger.sh ];then
     source ../lib/logger.sh $0
 else
     echo This script neads logger.sh
