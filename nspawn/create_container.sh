@@ -1,6 +1,7 @@
 #!/bin/bash
 
 # base-rootfsよりコンテナ作成
+# ./create_container.sh c1
 
 if [ -f ../lib/logger.sh ];then
     source ../lib/logger.sh $0
@@ -33,6 +34,7 @@ sudo tar -xzf "$BASE_TAR" -C "$CONTAINER_DIR"
 # Update hostname
 sudo chroot $CONTAINER_DIR bash -c "echo $CONTAINER_NAME > /etc/hostname"
 
+#
 # メタデータ作成
 META_DIR="/var/lib/machines/.meta"
 sudo mkdir -p "$META_DIR"

@@ -38,13 +38,17 @@ HOSTNAME=$DISTRO
 
 log info "Creating rootfs..."
 
-[ -d $WORK_DIR ] && rm -rf $WORK_DIR
-mkdir $WORK_DIR
+if [ -d $WORK_DIR ];
+    sudo umount $WORK_DIR && rm -rf $WORK_DIR/* || exit 1
+else
+    mkdir $WORK_DIR
+fi
+
 sudo mount -t tmpfs -o size=$SIZE tmpfs $WORK_DIR
 
 sudo debootstrap \
     --include=$INCLUDE_PACKAGES \
-    --variant=minbase
+    --variant=minbase \
     $DISTRO \
     $WORK_DIR
 
