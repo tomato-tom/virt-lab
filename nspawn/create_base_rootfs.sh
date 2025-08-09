@@ -44,6 +44,7 @@ sudo mount -t tmpfs -o size=$SIZE tmpfs $WORK_DIR
 
 sudo debootstrap \
     --include=$INCLUDE_PACKAGES \
+    --variant=minbase
     $DISTRO \
     $WORK_DIR
 
