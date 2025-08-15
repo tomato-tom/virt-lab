@@ -38,7 +38,7 @@ HOSTNAME=$DISTRO
 
 log info "Creating rootfs..."
 
-if [ -d $WORK_DIR ];
+if [ -d $WORK_DIR ]; then
     sudo umount $WORK_DIR && rm -rf $WORK_DIR/* || exit 1
 else
     mkdir $WORK_DIR
