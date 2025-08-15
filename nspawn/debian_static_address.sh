@@ -28,6 +28,18 @@ if ! dpkg -s systemd-resolved &> /dev/null; then
     sudo apt install -y systemd-resolved || error "apt install systemd-resolved"
 fi
 
+if ! dpkg -s iproute2 &> /dev/null; then
+    echo "Installing iproute2..."
+    sudo apt update || error "apt update"
+    sudo apt install -y iproute2 || error "apt install iproute2"
+fi
+
+if ! dpkg -s iputils-ping &> /dev/null; then
+    echo "Installing iputils-ping..."
+    sudo apt update || error "apt update"
+    sudo apt install -y iputils-ping || error "apt install iputils-ping"
+fi
+
 # Stop and disable 'networking' service to avoid conflicts
 if systemctl is-active --quiet networking; then
     echo "Disabling and stopping 'networking' service..."
@@ -72,18 +84,9 @@ ip addr show "$INTERFACE" | grep -E "inet\b"
 echo "Checking default gateway:"
 ip route show default
 echo "Checking DNS resolution:"
-resolvectl status | grep "Current DNS Server" || echo "Warning: DNS server not shown by resolvectl."
-resolvectl status | grep "DNS Servers" || echo "Warning: DNS server not shown by resolvectl."
+resolvectl | grep "Current DNS Server" || echo "Warning: DNS server not shown"
 
-nslookup google.com > /dev/null 2>&1
-if [ $? -eq 0 ]; then
-    echo "DNS resolution to google.com is successful"
-else
-    echo "DNS resolution to google.com failed"
-    exit 1
-fi
-
-ping -c 1 google.com > /dev/null 2>&1
+ping -c 1 -W 1 google.com > /dev/null 2>&1
 if [ $? -eq 0 ]; then
     echo "Ping to google.com is successful"
 else
