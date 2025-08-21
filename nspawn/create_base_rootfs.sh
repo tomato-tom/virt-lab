@@ -14,7 +14,7 @@ else
 fi
 
 # Install debootstrap if not exists
-if ! command -v debootstrap &> /dev/null; then
+if ! [ -x "/usr/sbin/debootstrap" ]; then
     log warn "debootstrap not found, installing..."
     sudo apt-get update && sudo apt-get install -y debootstrap
 fi
