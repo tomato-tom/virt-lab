@@ -25,9 +25,18 @@
 - logs
     - script.log
 - nspawn
+    - README.md
     - create_base_rootfs.sh
     - create_container.sh
-    - ...
+    - run_container.sh
+    - list_container.sh
+    - stop_container.sh
+    - remove_container.sh
+    - debian_static_address.sh
+    - setup_nspawn.sh
+    - default.conf
+    - custom.conf
+
 
 ## setup_nspawn.sh
 必要なパッケージをインストール

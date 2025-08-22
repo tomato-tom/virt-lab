@@ -1,14 +1,23 @@
 #!/bin/bash
 #
 #コンテナ起動スクリプト
-# root権限必要
 # sudo ./run_container.sh <name>
 
 NAME=$1
 SERVICE="container-${NAME}"
+LOGGER="../lib/logger.sh"
 
+# ログスクリプトの存在確認
+if [ -f "$LOGGER" ]; then
+    source "$LOGGER" $0
+else
+    echo This script neads logger.sh
+    exit 1
+fi
+
+# root権限必要
 if [ "$(id -u)" != "0" ]; then
-   echo "This script must be run with root" 1>&2
+   log error "Must be run with root"
    exit 1
 fi
 
@@ -17,43 +26,40 @@ if [ -z "$NAME" ]; then
     exit 1
 fi
 
-if ! machinectl list-images | grep $NAME; then
-    echo "Create container $NAME..."
+# コンテナなければ作成
+if ! machinectl image-status $NAME >/dev/null 2>&1; then
+    log info "Create container $NAME..."
     ./create_container.sh $NAME
 fi
 
 # クリーンアップ関数
 cleanup() {
-    echo "Cleaning up..."
-    # サービスが実行中なら停止
-    if systemctl is-active --quiet "$SERVICE.service"; then
-        echo "Stopping: $SERVICE.service"
-        sudo systemctl stop "$SERVICE.service"
+    log info "Cleaning up..."
+    # 既存のコンテナを停止
+    if machinectl status "$NAME" >/dev/null 2>&1; then
+        log info "Cleaning existing container $NAME"
+        ./stop_container.sh "$NAME"
     fi
-    
-    # サービスユニットのクリーンアップ
-    if systemctl status "$SERVICE.service" >/dev/null 2>&1; then
-        echo "Resetting service unit: $SERVICE.service"
-        sudo systemctl reset-failed "$SERVICE.service" 2>/dev/null || true
-    fi
+    # コンテナ停止中
+    # サービス異常
 
     if ip netns list | grep -q "$NAME"; then
-        echo "Removing network namespace: $NAME"
-        sudo ip netns delete "$NAME" 2>/dev/null || true
+        log info "Removing existing network namespace: $NAME"
+        ip netns delete "$NAME" 2>/dev/null || true
     fi
 }
 
 # トラップの設定 (スクリプトが中断された場合もクリーンアップ)
-trap cleanup INT TERM
+trap cleanup INT TERM  # EXIT ???
 
 create_netns() {
-    echo "Creating network namespace: $NAME"
+    log info "Creating network namespace: $NAME"
     ip netns add $NAME
 }
 # stop_containerで削除する
 
 run_container() {
-    # コンテナをバックグラウンド起動
+    log info "Start the container in background"
     systemd-run --unit=${SERVICE} \
         --property=Type=notify \
         --property=NotifyAccess=all \
@@ -66,11 +72,13 @@ run_container() {
             --directory=/var/lib/machines/${NAME}
 }
 
+# main
 cleanup
 ./stop_container.sh $NAME
 create_netns
 run_container
 
-echo "Successfully started container $NAME"
-echo "Service name: $NAME.service"
-
+log info "Successfully started container $NAME"
+log info "Service name: $SERVICE.service"
+echo "Check status: systemctl status $SERVICE.service"
+echo "View logs: journalctl -u $SERVICE.service -f"

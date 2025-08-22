@@ -3,15 +3,17 @@
 # base-rootfsよりコンテナ作成
 # ./create_container.sh c1
 
-if [ -f ../lib/logger.sh ];then
-    source ../lib/logger.sh $0
+LOGGER="../lib/logger.sh"
+
+if [ -f "$LOGGER" ];then
+    source "$LOGGER" $0
 else
     echo This script neads logger.sh
     exit 1
 fi
 
 if [ $# -eq 0 ]; then
-    log info "Usage: $0 <container_name> [base_tar][description]"
+    echo "Usage: $0 <container_name> [base_tar][description]"
     exit 1
 fi
 

@@ -6,15 +6,17 @@
 
 set -euo pipefail
 
-if [ -f ../lib/logger.sh ]; then
-    source ../lib/logger.sh $0
+LOGGER="../lib/logger.sh"
+
+if [ -f "$LOGGER" ]; then
+    source "$LOGGER" $0
 else
     echo This script neads logger.sh
     exit 1
 fi
 
 # Install debootstrap if not exists
-if ! [ -x "/usr/sbin/debootstrap" ]; then
+if ! [ -f "/usr/sbin/debootstrap" ]; then
     log warn "debootstrap not found, installing..."
     sudo apt-get update && sudo apt-get install -y debootstrap
 fi
