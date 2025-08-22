@@ -2,54 +2,75 @@
 #
 #コンテナ起動スクリプト
 # root権限必要
-# ./run_container.sh c1
-#
-# bridge, veth作成ライブラリに依存
+# sudo ./run_container.sh <name>
+
+NAME=$1
+SERVICE="container-${NAME}"
 
 if [ "$(id -u)" != "0" ]; then
-   echo "このスクリプトはroot権限で実行する必要があります" 1>&2
+   echo "This script must be run with root" 1>&2
    exit 1
 fi
 
-run_container() {
-    local name="$1"
-    find /var/lib/machines -name "$name" || return
-    # tmuxセッションでコンテナを起動
-    tmux new-session -d -s "$name" \
-        "systemd-nspawn -M $name --network-namespace-path=/run/netns/$name --boot"
-}
-
-# クリーンアップ関数
-cleanup() {
-    for name in ct1 ct2; do
-        tmux kill-session -t "$name" 2>/dev/null || true
-        machinectl terminate "$name" 2>/dev/null || true
-        ip netns del "$name" 2>/dev/null || true
-    done
-}
-
-# トラップ設定（スクリプト終了時クリーンアップ）
-trap cleanup EXIT
-
-# メイン処理
-# bridge作成
-if create_bridge; then
-    bridge="$BRIDGE"
-else
+if [ -z "$NAME" ]; then
+    echo "Usage: $0 <name>"
     exit 1
 fi
 
-# ct1
-create_veth  "ct1" "en0" "10.1.1.101/24" $bridge
-run_container "ct1"
+if ! machinectl list-images | grep $NAME; then
+    echo "Create container $NAME..."
+    ./create_container.sh $NAME
+fi
 
-# ct2
-create_veth  "ct2" "en0" "10.1.1.102/24" $bridge
-run_container "ct2"
- 
-# 確認
-machinectl list
-machinectl shell ct1 /bin/bash -c "ping -q -c 1 -w 1 10.1.1.102 && echo ok"
+# クリーンアップ関数
+cleanup() {
+    echo "Cleaning up..."
+    # サービスが実行中なら停止
+    if systemctl is-active --quiet "$SERVICE.service"; then
+        echo "Stopping: $SERVICE.service"
+        sudo systemctl stop "$SERVICE.service"
+    fi
+    
+    # サービスユニットのクリーンアップ
+    if systemctl status "$SERVICE.service" >/dev/null 2>&1; then
+        echo "Resetting service unit: $SERVICE.service"
+        sudo systemctl reset-failed "$SERVICE.service" 2>/dev/null || true
+    fi
 
-# ユーザー入力待ち（スクリプト終了を防ぐ）
-read -p "Press Enter to terminate containers..."
+    if ip netns list | grep -q "$NAME"; then
+        echo "Removing network namespace: $NAME"
+        sudo ip netns delete "$NAME" 2>/dev/null || true
+    fi
+}
+
+# トラップの設定 (スクリプトが中断された場合もクリーンアップ)
+trap cleanup INT TERM
+
+create_netns() {
+    echo "Creating network namespace: $NAME"
+    ip netns add $NAME
+}
+# stop_containerで削除する
+
+run_container() {
+    # コンテナをバックグラウンド起動
+    systemd-run --unit=${SERVICE} \
+        --property=Type=notify \
+        --property=NotifyAccess=all \
+        --property=DeviceAllow='char-/dev/net/tun rw' \
+        --property=DeviceAllow='char-/dev/vhost-net rw' \
+        systemd-nspawn \
+            --boot \
+            --machine=${NAME} \
+            --network-namespace-path=/run/netns/${NAME} \
+            --directory=/var/lib/machines/${NAME}
+}
+
+cleanup
+./stop_container.sh $NAME
+create_netns
+run_container
+
+echo "Successfully started container $NAME"
+echo "Service name: $NAME.service"
+
