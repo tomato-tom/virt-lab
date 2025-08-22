@@ -7,7 +7,7 @@
 # log error "file not found: file"
 
 # ログファイル設定
-SOURCE_SCRIPT=$1
+SOURCE_SCRIPT="$(basename $1)"
 LOG_FILE="../logs/script.log"
 LOG_MAX_SIZE=$((1024*1024))  # 1MB (バイト単位)
 LOG_MAX_FILES=3              # 保持するログファイルの最大数
@@ -53,7 +53,7 @@ log() {
     esac
     
     # コンソールとファイルに出力
-    echo -e "${color}[${timestamp}] [${level^^}] ${message}${COLOR_RESET}"
+    echo -e "${color}${level^^}: ${message}${COLOR_RESET}"
     echo "[${timestamp}] [${level^^}] [${SOURCE_SCRIPT}] ${message}" >> "$LOG_FILE"
 }
 
