@@ -13,18 +13,31 @@
 # delete_ns
 # clean
 # list_connections
+#
+# 命名規則
+# bridge
+# ns-br0, ns-br1, ns-br2...
+# bridge IP addresss
+# 10.0.<brnum>.1/24
+# 例; ns-br1 10.0.1.1/24
+#
+# netns
+# ns1, ns2, ns3...
+# netns IP address
+# 10.0.1.<nsnum + 10>/24
+# 例: ns-br1, ns2 10.0.1.12/24
+#
 
 set -e
-set -x
 
 usage() {
     echo "Usage: $0 {create|attach|detach|list} [bridge] [ns]"
     echo "  create <bridge>          - ブリッジ作成"
     echo "  attach <bridge> <ns>     - netnsをブリッジに接続"
     echo "  detach <bridge> <ns>     - netnsをブリッジから切断"
-    echo "  delete <bridge>          - ブリッジとネットワーク名前空間を作成"
+    echo "  delete <bridge>          - ブリッジとネットワーク名前空間を削除"
     echo "  rmns <ns>                - ネットワーク名前空間を削除"
-    echo "  clean                    - 全て削除
+    echo "  clean                    - 全て削除"  # 修正: 閉じ引用符追加
     echo "  list [bridge]            - ブリッジと接続状況を表示"
     exit 1
 }
@@ -40,8 +53,11 @@ create_bridge() {
         echo "ブリッジ $bridge は既に存在します"
     fi
 
+    local num="${bridge#ns-br}"
+    local address="10.1.${num}.1"
+
     ip addr flush $bridge
-    ip addr add 10.1.1.1/24 dev $bridge
+    ip addr add "${address}/24" dev $bridge
 }
 
 delete_bridge() {
@@ -59,17 +75,17 @@ delete_bridge() {
 create_ns() {
     local name="$1"
 
-    if ip netns add "$name" >/dev/null 2>&1; then
-        echo "$netns $name alredy exists"
-    else 
+    if ip netns add "$name" 2>/dev/null; then  # 修正: リダイレクト修正
         echo "netns $name を作成しました"
+    else 
+        echo "netns $name はすでに存在します"  # 修正: メッセージ修正
     fi
 }
 
 remove_ns() {
     local name="$1"
 
-    if ip netns del "$name" >/dev/null 2>&1; then
+    if ip netns del "$name" 2>/dev/null; then  # 修正: リダイレクト修正
         echo "netns $name を削除しました"
     else 
         echo "netns $name はすでに存在しません"
@@ -82,18 +98,19 @@ networking_ns() {
     local address
 
     # netns名の数字をIPアドレスの末尾に
-    local num="{ns#ns}"
+    local num="${name#ns}"  # 修正: 変数展開の構文修正
     num=$((num + 10))
     address="10.1.1.${num}/24"
 
     # 既存の設定をクリーンアップ
-    ip netns exec $name ip link set $ifname down
-    ip netns exec $name ip addr flush $ifname
+    ip netns exec $name ip link set $ifname down 2>/dev/null || true
+    ip netns exec $name ip addr flush $ifname 2>/dev/null || true
 
     # 設定
     ip netns exec $name ip addr add $address dev $ifname
     ip netns exec $name ip link set $ifname up
     ip netns exec $name ip link set lo up
+    echo "netns $name にIPアドレス $address を設定"
 }
 
 routing_ns() {
@@ -101,7 +118,7 @@ routing_ns() {
     local gateway="$2"
 
     # 既存の設定をクリーンアップ
-    ip netns exec $name ip route flush default
+    ip netns exec $name ip route flush default 2>/dev/null || true
 
     ip netns exec $name ip route add default via $gateway
     echo "netns $name のデフォルトルートを$gatewayに設定"
@@ -116,17 +133,17 @@ create_veth() {
     local ns_veth="en0"
 
     # 既存のvethペア削除
-    if ip link show $host_veth; then
-        ip link del $host_veth type veth
+    if ip link show $host_veth 2>/dev/null; then
+        ip link del $host_veth
     fi
 
     ip link add "$host_veth" type veth peer name $ns_veth netns $ns
-    echo "vethペア作成: [$host-veth]---[$ns_veth]$ns"
+    echo "vethペア作成: [$host_veth]---[$ns_veth@$ns]"  # 修正: 変数名修正
 }
 
 check_state() {
     local name="$1"
-    local state="$(ip -j link show $name | jq -r '.[] | .operstate')"
+    local state="$(ip -j link show $name 2>/dev/null | jq -r '.[] | .operstate')"
 
     echo $state
 }
@@ -134,6 +151,8 @@ check_state() {
 attach_ns() {
     local bridge="$1"
     local ns="$2"
+    local host_veth="ve-${ns}"  # 修正: 変数定義追加
+    local ns_veth="en0"
     
     # ブリッジの存在確認
     if ! ip link show "$bridge" >/dev/null 2>&1; then
@@ -142,12 +161,12 @@ attach_ns() {
     fi
 
     # とりあえずブリッジをdownに
-    if [ "$(check_state $bridge)" == "UP"; then
+    if [ "$(check_state $bridge)" == "UP" ]; then
         ip link set $bridge down
     fi
 
     # netnsの存在確認
-    if ! ip netns pid $ns; then
+    if ! ip netns pids $ns >/dev/null 2>&1; then  # 修正: pids使用、リダイレクト追加
         create_ns $ns
         echo "info: $ns 作成中..."
     fi 
@@ -162,9 +181,11 @@ attach_ns() {
     # bridgeもUP --- これはポートUPの後でやるほうがいいみたい
     ip link set "$bridge" up
 
-    echo "ブリッジ接続: $bridge[$host-veth]---[$ns_veth]$ns"
+    echo "ブリッジ接続: $bridge[$host_veth]---[$ns_veth@$ns]"
 
-    routing_ns $ns $ns
+    local num="${bridge#ns-br}"
+    local address="10.1.${num}.1"
+    routing_ns $ns "$address"
 }
 
 detach_ns() {
@@ -182,7 +203,7 @@ detach_ns() {
 }
 
 clean_all() {
-    local names="$(ip -j link show type bridge | jq -r '.[] | .ifname' | grep '^ns-br')"
+    local names="$(ip -j link show type bridge 2>/dev/null | jq -r '.[] | .ifname' | grep '^ns-br' || true)"
     for name in $names; do 
         ip link del $name 
     done
@@ -197,14 +218,14 @@ list_connections() {
         if ip link show "$bridge" 2>/dev/null; then
             echo "=== ブリッジ $bridge の接続状況 ==="
             ip link show "$bridge"
-            ip link show type veth | grep "master $bridge"
+            ip link show type veth | grep "master $bridge" || echo "接続されたvethペアはありません"
         else
             echo "ブリッジ $bridge は存在しません"
-            echo "=== $bridge ==="
+            echo "=== 全ブリッジ ==="  # 修正: メッセージ修正
             ip link show type bridge
         fi
     else
-        echo "=== $bridge ==="
+        echo "=== 全ブリッジ ==="  # 修正: メッセージ修正
         ip link show type bridge
     fi
 }
