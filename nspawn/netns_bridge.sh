@@ -2,6 +2,7 @@
 
 # 関数の関連性
 # create_bridge
+# delete_bridge
 # attach_ns
 #     check_state
 #     create_ns
@@ -9,7 +10,6 @@
 #     networking_ns
 #     routing_ns
 # detach_ns
-# delete_bridge
 # delete_ns
 # clean
 # list_connections
@@ -37,6 +37,7 @@ usage() {
     echo "  detach <bridge> <ns>     - netnsをブリッジから切断"
     echo "  delete <bridge>          - ブリッジとネットワーク名前空間を削除"
     echo "  rmns <ns>                - ネットワーク名前空間を削除"
+    echo "  addns <ns>               - ネットワーク名前空間を追加"
     echo "  clean                    - 全て削除"  # 修正: 閉じ引用符追加
     echo "  list [bridge]            - ブリッジと接続状況を表示"
     exit 1
@@ -94,13 +95,16 @@ remove_ns() {
 
 networking_ns() {
     local name="$1"
+    local bridge="$2"
     local ifname="en0"
     local address
 
     # netns名の数字をIPアドレスの末尾に
-    local num="${name#ns}"  # 修正: 変数展開の構文修正
+    # bridge名の数字をIPアドレスの一部に
+    local num="${name#ns}"
+    local brnum="${bridge#ns-br}"
     num=$((num + 10))
-    address="10.1.1.${num}/24"
+    address="10.1.${brnum}.${num}/24"
 
     # 既存の設定をクリーンアップ
     ip netns exec $name ip link set $ifname down 2>/dev/null || true
@@ -172,7 +176,7 @@ attach_ns() {
     fi 
     
     create_veth $ns
-    networking_ns $ns
+    networking_ns $ns $bridge
     
     # ホスト側をブリッジに接続
     ip link set "$host_veth" master "$bridge"
