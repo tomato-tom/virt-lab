@@ -22,7 +22,8 @@
 # ==============================================================================
 
 # reset table
-delete table ip io.systemd.nat
+delete table ip custom.nat
+#nft flush table ip custom.nat
 
 # template
 table ip custom.nat {

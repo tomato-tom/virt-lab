@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # 関数の関連性
-# create_bridge
-# delete_bridge
+# create_bridge --> /lib/bridge.sh
+# delete_bridge --> /lib/bridge.sh
 # attach_ns
 #     check_state
 #     create_ns
@@ -43,35 +43,6 @@ usage() {
     exit 1
 }
 
-create_bridge() {
-    local bridge="$1"
-    
-    # ブリッジ作成
-    if ! ip link show "$bridge" >/dev/null 2>&1; then
-        ip link add name "$bridge" type bridge
-        echo "ブリッジ $bridge を作成しました"
-    else
-        echo "ブリッジ $bridge は既に存在します"
-    fi
-
-    local num="${bridge#ns-br}"
-    local address="10.1.${num}.1"
-
-    ip addr flush $bridge
-    ip addr add "${address}/24" dev $bridge
-}
-
-delete_bridge() {
-    local bridge="$1"
-    
-    # ブリッジ削除
-    if ip link show "$bridge" >/dev/null 2>&1; then
-        ip link delete name "$bridge" type bridge
-        echo "ブリッジ $bridge を削除しました"
-    else
-        echo "ブリッジ $bridge は存在しません"
-    fi
-}
 
 create_ns() {
     local name="$1"
@@ -234,11 +205,31 @@ list_connections() {
     fi
 }
 
-# メイン処理
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR"
+
+# ライブラリ読み込み
+#source lib/common.sh
+source lib/query.sh  
+source lib/bridge.sh
+#source lib/netns.sh
+#source lib/veth.sh
+#source lib/network.sh
+source lib/logger.sh $0
+
+# 初期設定
+net_addr="10.1"
+log_dir="logs"
+
+mkdir -p $log_dir
+
 case "$1" in
     create)
         [ $# -lt 2 ] && usage
-        create_bridge "$2"
+        bridge="$2"
+        ip_addr="${net_addr}.${bridge#ns-br}.1/24"
+        create_bridge "$bridge" "$ip_addr"
         ;;
     attach)
         [ $# -lt 3 ] && usage
