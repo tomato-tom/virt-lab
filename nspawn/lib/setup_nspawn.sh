@@ -31,11 +31,10 @@ install_packages() {
 }
 
 # 基本nspawnパッケージ
-install_nspawn_base() {
+install_base() {
     local packages=(
         debootstrap
         systemd-container
-        systemd-resolved
     )
     install_packages "${packages[@]}"
 }
@@ -46,7 +45,6 @@ install_utils() {
         iproute2
         nftables
         iputils-ping
-        tmux
         jq
     )
     install_packages "${packages[@]}"
@@ -64,6 +62,6 @@ install_yq() {
 }
 
 # 必要に応じて呼び出し元で関数を呼び出す
-# install_nspawn_base
+# install_base
 # install_utils
 # install_yq

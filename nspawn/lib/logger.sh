@@ -18,6 +18,8 @@ COLOR_INFO="\033[32m"    # Green
 COLOR_WARN="\033[33m"    # Yellow
 COLOR_ERROR="\033[31m"   # Red
 
+mkdir -p logs
+
 # ログローテーション関数
 rotate_log() {
     # ログファイルが存在し、サイズ超過しているか確認

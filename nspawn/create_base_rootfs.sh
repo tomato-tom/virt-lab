@@ -1,5 +1,5 @@
 #!/bin/bash
-#
+# ./create_rootfs.sh
 # nspawnで使うベースイメージ作成
 # デフォルトで'config/default.conf'読み込み
 # カスタム設定するには、その後設定ファイル'config/custom.conf'で適宜変数上書き
@@ -17,7 +17,8 @@ load_logger $0
 check_root || exit 1
 
 # setup
-bash lib/setup_nspawn.sh || exit 1
+source lib/setup_nspawn.sh || exit 1
+install_base 
 
 # Load default configuration
 log info "Load default.conf"
