@@ -1,13 +1,15 @@
 #!/bin/bash
 # lib/setup_nspawn.sh
 
-LIB_DIR=$(cd $(dirname ${BASH_SOURCE:-$0}); pwd)
+cd $(dirname ${BASH_SOURCE:-$0})
+cd ..
 
 [ -f lib/common.sh ] && source lib/common.sh || {
     echo "Failed to source common.sh" >&2
     exit 1
 }
 
+loard_logger $0
 check_root
 
 # パッケージインストール関数

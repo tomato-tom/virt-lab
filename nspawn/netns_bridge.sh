@@ -28,14 +28,14 @@
 # 例: ns-br1, ns2 10.0.1.12/24
 #
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-cd "$SCRIPT_DIR"
+cd $(dirname ${BASH_SOURCE:-$0})
 
 [ -f lib/common.sh ] && source lib/common.sh || {
     echo "Failed to source common.sh" >&2
     exit 1
 }
 
+load_logger $0
 check_root || exit 1
 
 set -e
@@ -48,7 +48,7 @@ usage() {
     echo "  delete <bridge>          - ブリッジとネットワーク名前空間を削除"
     echo "  rmns <ns>                - ネットワーク名前空間を削除"
     echo "  addns <ns>               - ネットワーク名前空間を追加"
-    echo "  clean                    - 全て削除"  # 修正: 閉じ引用符追加
+    echo "  clean                    - 全て削除"
     echo "  list [bridge]            - ブリッジと接続状況を表示"
     exit 1
 }
@@ -57,10 +57,10 @@ usage() {
 create_ns() {
     local name="$1"
 
-    if ip netns add "$name" 2>/dev/null; then  # 修正: リダイレクト修正
-        echo "netns $name を作成しました"
+    if ip netns add "$name" 2>/dev/null; then
+        log info "netns $name を作成しました"
     else 
-        echo "netns $name はすでに存在します"  # 修正: メッセージ修正
+        log warn "netns $name はすでに存在します"
     fi
 }
 
@@ -68,9 +68,9 @@ remove_ns() {
     local name="$1"
 
     if ip netns del "$name" 2>/dev/null; then  # 修正: リダイレクト修正
-        echo "netns $name を削除しました"
+        log info "netns $name を削除しました"
     else 
-        echo "netns $name はすでに存在しません"
+        log warn "netns $name はすでに存在しません"
     fi
 }
 
@@ -95,7 +95,7 @@ networking_ns() {
     ip netns exec $name ip addr add $address dev $ifname
     ip netns exec $name ip link set $ifname up
     ip netns exec $name ip link set lo up
-    echo "netns $name にIPアドレス $address を設定"
+    log info "netns $name にIPアドレス $address を設定"
 }
 
 routing_ns() {
@@ -106,7 +106,7 @@ routing_ns() {
     ip netns exec $name ip route flush default 2>/dev/null || true
 
     ip netns exec $name ip route add default via $gateway
-    echo "netns $name のデフォルトルートを$gatewayに設定"
+    log info "netns $name のデフォルトルートを$gatewayに設定"
 }
 
 create_veth() {
@@ -123,14 +123,14 @@ create_veth() {
     fi
 
     ip link add "$host_veth" type veth peer name $ns_veth netns $ns
-    echo "vethペア作成: [$host_veth]---[$ns_veth@$ns]"  # 修正: 変数名修正
+    log info "vethペア作成: [$host_veth]---[$ns_veth@$ns]"  # 修正: 変数名修正
 }
 
 check_state() {
     local name="$1"
     local state="$(ip -j link show $name 2>/dev/null | jq -r '.[] | .operstate')"
 
-    echo $state
+    log info $state
 }
 
 attach_ns() {
@@ -142,7 +142,7 @@ attach_ns() {
     # ブリッジの存在確認
     if ! ip link show "$bridge" >/dev/null 2>&1; then
         create_bridge $bridge
-        echo "info: ブリッジ $bridge 作成中..."
+        log info "info: ブリッジ $bridge 作成中..."
     fi
 
     # とりあえずブリッジをdownに
@@ -153,7 +153,7 @@ attach_ns() {
     # netnsの存在確認
     if ! ip netns pids $ns >/dev/null 2>&1; then  # 修正: pids使用、リダイレクト追加
         create_ns $ns
-        echo "info: $ns 作成中..."
+        log info "info: $ns 作成中..."
     fi 
     
     create_veth $ns
@@ -166,7 +166,7 @@ attach_ns() {
     # bridgeもUP --- これはポートUPの後でやるほうがいいみたい
     ip link set "$bridge" up
 
-    echo "ブリッジ接続: $bridge[$host_veth]---[$ns_veth@$ns]"
+    log info "ブリッジ接続: $bridge[$host_veth]---[$ns_veth@$ns]"
 
     local num="${bridge#ns-br}"
     local address="10.1.${num}.1"
@@ -181,10 +181,10 @@ detach_ns() {
     # vethインターフェースの削除
     if ip link show "$host_veth" >/dev/null 2>&1; then
         ip link delete "$host_veth"
-        echo "vethインターフェース $host_veth を削除しました"
+        log info "vethインターフェース $host_veth を削除しました"
     fi
     
-    echo "netns $ns をブリッジ $bridge から切断しました"
+    log info "netns $ns をブリッジ $bridge から切断しました"
 }
 
 clean_all() {
@@ -201,23 +201,20 @@ list_connections() {
     
     if [ -n "$bridge" ]; then
         if ip link show "$bridge" 2>/dev/null; then
-            echo "=== ブリッジ $bridge の接続状況 ==="
+            log info "=== ブリッジ $bridge の接続状況 ==="
             ip link show "$bridge"
-            ip link show type veth | grep "master $bridge" || echo "接続されたvethペアはありません"
+            ip link show type veth | grep "master $bridge" || log info "接続されたvethペアはありません"
         else
-            echo "ブリッジ $bridge は存在しません"
-            echo "=== 全ブリッジ ==="  # 修正: メッセージ修正
+            log info "ブリッジ $bridge は存在しません"
+            log info "=== 全ブリッジ ==="  # 修正: メッセージ修正
             ip link show type bridge
         fi
     else
-        echo "=== 全ブリッジ ==="  # 修正: メッセージ修正
+        log info "=== 全ブリッジ ==="  # 修正: メッセージ修正
         ip link show type bridge
     fi
 }
 
-
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-cd "$SCRIPT_DIR"
 
 # ライブラリ読み込み
 source lib/query.sh  

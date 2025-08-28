@@ -13,11 +13,11 @@ cd $(dirname ${BASH_SOURCE:-$0})
     exit 1
 }
 
-cd $(dirname ${BASH_SOURCE:-$0})
+load_logger $0
 check_root || exit 1
 
 # setup
-/bin/bash lib/setup_nspawn.sh || exit 1
+bash lib/setup_nspawn.sh || exit 1
 
 # Load default configuration
 log info "Load default.conf"

@@ -7,7 +7,7 @@
 # log error "file not found: file"
 
 # ログファイル設定
-SOURCE_SCRIPT="$(basename $1)"
+SOURCE_SCRIPT="$1"
 LOG_FILE="logs/script.log"
 LOG_MAX_SIZE=$((1024*1024))  # 1MB (バイト単位)
 LOG_MAX_FILES=3              # 保持するログファイルの最大数

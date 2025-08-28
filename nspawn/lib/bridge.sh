@@ -1,6 +1,9 @@
 #!/bin/bash
 # Bridge management functions
 
+cd $(dirname ${BASH_SOURCE:-$0})
+cd ../
+
 source lib/query.sh
 source lib/logger.sh
 

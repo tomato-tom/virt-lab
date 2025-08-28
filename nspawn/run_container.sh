@@ -14,7 +14,7 @@ cd $(dirname ${BASH_SOURCE:-$0})
     echo "Failed to source common.sh" >&2
     exit 1
 }
-cd $(dirname ${BASH_SOURCE:-$0})
+load_logger $0
 check_root || exit 1
 
 # setup
