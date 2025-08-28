@@ -36,7 +36,9 @@ sudo systemd-nspawn -M my-container
 
 コンテナに入ったら、`hostnamectl`や`ip addr`などで環境を確認してみよう。
 
-終了するときは`exit`で抜ける。
+終了するときは
+`exit`
+Ctrl-] x3
 
 -----
 

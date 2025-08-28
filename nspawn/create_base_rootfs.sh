@@ -1,36 +1,36 @@
 #!/bin/bash
 #
 # nspawnで使うベースイメージ作成
-# カスタム設定するには引数でファイル指定
-# ./create_rootfs.sh [ <custom config> ]
+# デフォルトで'config/default.conf'読み込み
+# カスタム設定するには、その後設定ファイル'config/custom.conf'で適宜変数上書き
+# 例:
+# ./create_rootfs.sh config/custom.conf
 
-set -euo pipefail
+cd $(dirname ${BASH_SOURCE:-$0})
 
-LOGGER="../lib/logger.sh"
-
-if [ -f "$LOGGER" ]; then
-    source "$LOGGER" $0
-else
-    echo This script neads logger.sh
+[ -f lib/common.sh ] && source lib/common.sh || {
+    echo "Failed to source common.sh" >&2
     exit 1
-fi
+}
 
-# Install debootstrap if not exists
-if ! [ -f "/usr/sbin/debootstrap" ]; then
-    log warn "debootstrap not found, installing..."
-    sudo apt-get update && sudo apt-get install -y debootstrap
-fi
+cd $(dirname ${BASH_SOURCE:-$0})
+check_root || exit 1
 
-# Load configuration
-if [ -f ./default.conf ]; then
-    source ./default.conf
-    log info "Load default.conf"
-else
+# setup
+/bin/bash lib/setup_nspawn.sh || exit 1
+
+# Load default configuration
+log info "Load default.conf"
+load_config || {
     log error "This script neads default.conf"
     exit 1
-fi
+}
 
-[ "${1:-}" ] && source "$1"
+# カスタム設定ファイルが引数渡されてたら読み込み
+[ "${1:-}" ] && load_config $1 || {
+    log warn "Failed to load custom config: $1"
+    log info "Create default base rootfs: $1"
+}
 
 WORK_DIR="/tmp/$DISTRO-base-rootfs"
 SIZE=1G
@@ -41,32 +41,32 @@ HOSTNAME=$DISTRO
 log info "Creating rootfs..."
 
 if [ -d $WORK_DIR ]; then
-    sudo umount $WORK_DIR && rm -rf $WORK_DIR/* || exit 1
+    umount $WORK_DIR && rm -rf $WORK_DIR/* || exit 1
 else
     mkdir $WORK_DIR
 fi
 
-sudo mount -t tmpfs -o size=$SIZE tmpfs $WORK_DIR
+mount -t tmpfs -o size=$SIZE tmpfs $WORK_DIR
 
-sudo debootstrap \
+debootstrap \
     --include=$INCLUDE_PACKAGES \
     --variant=minbase \
     $DISTRO \
     $WORK_DIR
 
 log info "Initial settings..."
-echo "root:root" | sudo chroot $WORK_DIR chpasswd
-sudo chroot $WORK_DIR bash -c "echo $HOSTNAME > /etc/hostname"
+echo "root:root" | chroot $WORK_DIR chpasswd
+chroot $WORK_DIR bash -c "echo $HOSTNAME > /etc/hostname"
 
 log info "Creating tarball..."
 
-sudo mkdir -p $IMAGE_DIR
-[ -f $TARBALL ] && sudo rm $TARBALL
+mkdir -p $IMAGE_DIR
+[ -f $TARBALL ] && rm $TARBALL
 
-sudo tar -czf $TARBALL -C $WORK_DIR . && \
+tar -czf $TARBALL -C $WORK_DIR . && \
 log info "Base rootfs created: $TARBALL"
 
 # Cleanup
-sudo umount "$WORK_DIR" || log error "Error: Failed to unmount $WORK_DIR" >&2
-sudo rm -rf "$WORK_DIR" || log error "Error: Failed to remove $WORK_DIR" >&2
+umount "$WORK_DIR" || log error "Error: Failed to unmount $WORK_DIR" >&2
+rm -rf "$WORK_DIR" || log error "Error: Failed to remove $WORK_DIR" >&2
 

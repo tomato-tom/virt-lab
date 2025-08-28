@@ -6,19 +6,15 @@
 NAME=$1
 SERVICE="container-${NAME}"
 
-LOGGER="../lib/logger.sh"
+cd $(dirname ${BASH_SOURCE:-$0})
 
-if [ -f "$LOGGER" ];then
-    source "$LOGGER" $0
-else
-    echo This script neads logger.sh
+[ -f lib/common.sh ] && source lib/common.sh || {
+    echo "Failed to source common.sh" >&2
     exit 1
-fi
+}
 
-if [ "$(id -u)" != "0" ]; then
-   log error "This script must be run with root" 1>&2
-   exit 1
-fi
+cd $(dirname ${BASH_SOURCE:-$0})
+check_root || exit 1
 
 if [ -z "$NAME" ]; then
     echo "Usage: $0 <name>"

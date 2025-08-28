@@ -3,23 +3,20 @@
 ## 機能
 
 ### コンテナ
-- rootfs作成
-- コンテナ作成・削除
-- コンテナ実行・停止
+- base rootfs作成
+- コンテナ作成・実行・停止・削除
 - コンテナのリスト・情報
-- コンテナをコピー
 - 複数のコンテナを組み合わせるスクリプトのサンプル
 
+
 ### ネットワーク
-- ネットワークブリッジ作成
-- IPアドレス
-- NAT
-- ルーティング
+- ブリッジ、netns、veth
 - ネットワーク情報表示、保存、復元
 
 
 ## ディレクトリ構成
-スクリプトの実行はこのディレクトリ`nspawn`からで、ログのスクリプトは相対パス
+スクリプトの実行はこのディレクトリ`nspawn`からで、相対パス指定
+
 - lib
     - logger.sh
 - logs
@@ -34,33 +31,10 @@
     - remove_container.sh
     - debian_static_address.sh
     - setup_nspawn.sh
+- config
     - default.conf
     - custom.conf
+- docs
 
-
-## setup_nspawn.sh
-必要なパッケージをインストール
-- debootstrap
-- systemd-container
-- jq
-- tmux
-- socat
-
-
-## create_base_rootfs.sh
-
-debootstrapでrootfs作成
-```
-# ./create_rootfs.sh [ <custom config> ]
-```
-
-rootの初期パスワードを`root`に設定
-rootfs作成時にtmpfsにマウントしてメモリ活用
-デフォルトでdebian stable、変更可能
-- custom.conf
-- default.conf
-
-
-## create_container.sh
-base_rootfsよりコンテナ作成
+> 開発環境用、運用は/usr/local/binとかに入れればいいんじゃないか
 

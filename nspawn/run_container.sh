@@ -5,21 +5,20 @@
 
 NAME=$1
 SERVICE="container-${NAME}"
-LOGGER="../lib/logger.sh"
+LOGGER="lib/logger.sh"
 
-# ログスクリプトの存在確認
-if [ -f "$LOGGER" ]; then
-    source "$LOGGER" $0
-else
-    echo This script neads logger.sh
+cd $(dirname ${BASH_SOURCE:-$0})
+
+# 共通設定読み込み
+[ -f lib/common.sh ] && source lib/common.sh || {
+    echo "Failed to source common.sh" >&2
     exit 1
-fi
+}
+cd $(dirname ${BASH_SOURCE:-$0})
+check_root || exit 1
 
-# root権限必要
-if [ "$(id -u)" != "0" ]; then
-   log error "Must be run with root"
-   exit 1
-fi
+# setup
+/bin/bash lib/setup_nspawn.sh || exit 1
 
 if [ -z "$NAME" ]; then
     echo "Usage: $0 <name>"
@@ -41,7 +40,6 @@ cleanup() {
         ./stop_container.sh "$NAME"
     fi
     # コンテナ停止中
-    # サービス異常
 
     if ip netns list | grep -q "$NAME"; then
         log info "Removing existing network namespace: $NAME"
@@ -49,8 +47,8 @@ cleanup() {
     fi
 }
 
-# トラップの設定 (スクリプトが中断された場合もクリーンアップ)
-trap cleanup INT TERM  # EXIT ???
+# トラップの設定 
+trap cleanup INT TERM
 
 create_netns() {
     log info "Creating network namespace: $NAME"
@@ -81,4 +79,6 @@ run_container
 log info "Successfully started container $NAME"
 log info "Service name: $SERVICE.service"
 echo "Check status: systemctl status $SERVICE.service"
-echo "View logs: journalctl -u $SERVICE.service -f"
+echo "View logs:"
+echo "  journalctl -u $SERVICE.service -f"
+echo "  cat logs/script.log"

@@ -28,6 +28,16 @@
 # 例: ns-br1, ns2 10.0.1.12/24
 #
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR"
+
+[ -f lib/common.sh ] && source lib/common.sh || {
+    echo "Failed to source common.sh" >&2
+    exit 1
+}
+
+check_root || exit 1
+
 set -e
 
 usage() {
@@ -210,13 +220,11 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
 # ライブラリ読み込み
-#source lib/common.sh
 source lib/query.sh  
 source lib/bridge.sh
 #source lib/netns.sh
 #source lib/veth.sh
 #source lib/network.sh
-source lib/logger.sh $0
 
 # 初期設定
 net_addr="10.1"

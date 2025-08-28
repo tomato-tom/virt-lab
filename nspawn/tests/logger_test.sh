@@ -1,5 +1,6 @@
 #!/bin/bash
 
+cd $(dirname ${BASH_SOURCE:-$0})
 source ../lib/logger.sh $0
 
 # テスト用に小さなサイズ制限を設定
@@ -12,14 +13,14 @@ for i in {1..100}; do
     log info "test $i"
     log info "test $i"
     log warn "Warning message"
-    log info "test $i"
+    log debug "test $i"
     log info "test $i"
     log info "test $i"
     log info "test $i"
     log error "file not found: foo.sh"
     log info "test $i"
     log info "test $i"
-    log info "test $i"
+    log error "test $i"
     log info "test $i"
 done
 
