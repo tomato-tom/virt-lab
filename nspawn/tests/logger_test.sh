@@ -1,7 +1,12 @@
 #!/bin/bash
 
-cd $(dirname ${BASH_SOURCE:-$0})
-source ../lib/logger.sh $0
+if ! source "$(dirname "${BASH_SOURCE[0]}")/../lib/logger.sh" $0; then
+    echo "Failed to source logger.sh" >&2
+    return 1
+fi
+
+LOG_FILE=$(dirname "${BASH_SOURCE[0]}")/logs/test.log
+mkdir -p $(dirname "${BASH_SOURCE[0]}")/logs
 
 # テスト用に小さなサイズ制限を設定
 LOG_MAX_SIZE=$((1024))  # 1KBでテスト
