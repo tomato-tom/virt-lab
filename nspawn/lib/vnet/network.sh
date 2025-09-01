@@ -1,7 +1,7 @@
 #!/bin/bash
 # IPアドレスとルーティング管理
 
-source lib/common.sh
+source $(dirname "${BASH_SOURCE[0]}")/../common.sh
 
 # IPアドレス自動割り当て
 assign_ip_address() {

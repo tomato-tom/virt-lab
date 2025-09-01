@@ -1,34 +1,31 @@
 #!/bin/bash
-#
-#コンテナ起動スクリプト
-# sudo ./run_container.sh <name>
+# run_container.sh
+# コンテナ起動スクリプト
+# 例:
+# sudo lib/container/run_container.sh <name>
 
 NAME=$1
 SERVICE="container-${NAME}"
-LOGGER="lib/logger.sh"
 
-cd $(dirname ${BASH_SOURCE:-$0})
-
-# 共通設定読み込み
-[ -f lib/common.sh ] && source lib/common.sh || {
+if source "$(dirname "${BASH_SOURCE[0]}")/../common.sh"; then
+    load_logger $0
+    check_root || exit 1
+else
     echo "Failed to source common.sh" >&2
     exit 1
-}
-load_logger $0
-check_root || exit 1
+fi
 
 # setup
-/bin/bash lib/setup_nspawn.sh || exit 1
-
-if [ -z "$NAME" ]; then
-    echo "Usage: $0 <name>"
+if source "$(dirname "${BASH_SOURCE[0]}")/../setup_nspawn.sh"; then
+    install_base 
+else
     exit 1
 fi
 
 # コンテナなければ作成
 if ! machinectl image-status $NAME >/dev/null 2>&1; then
     log info "Create container $NAME..."
-    ./create_container.sh $NAME
+    $(dirname "${BASH_SOURCE[0]}")/create_container.sh $NAME
 fi
 
 # クリーンアップ関数
@@ -37,7 +34,7 @@ cleanup() {
     # 既存のコンテナを停止
     if machinectl status "$NAME" >/dev/null 2>&1; then
         log info "Cleaning existing container $NAME"
-        ./stop_container.sh "$NAME"
+        $(dirname "${BASH_SOURCE[0]}")/stop_container.sh "$NAME"
     fi
     # コンテナ停止中
 
@@ -69,10 +66,11 @@ run_container() {
             --network-namespace-path=/run/netns/${NAME} \
             --directory=/var/lib/machines/${NAME}
 }
+# とりあえずこれ
 
 # main
 cleanup
-./stop_container.sh $NAME
+$(dirname "${BASH_SOURCE[0]}")/stop_container.sh $NAME
 create_netns
 run_container
 

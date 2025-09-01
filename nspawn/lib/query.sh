@@ -1,9 +1,11 @@
 #!/bin/bash
-# query.sh
-# source lib/query.sh
-# Network status retrieval and JSON parsing
+# name: query.sh
+# description:
+#   Network status retrieval and JSON parsing
+# usage:
+#   source lib/query.sh
 
-source lib/logger.sh $0
+source $(dirname ${BASH_SOURCE[0]})/lib/logger.sh $0
 
 # Get bridge information
 get_bridge_info() {

@@ -1,16 +1,15 @@
 #!/bin/bash
 # lib/setup_nspawn.sh
+#
+# 各スクリプトに必要なパッケージを確認してインストール
 
-cd $(dirname ${BASH_SOURCE:-$0})
-cd ..
-
-[ -f lib/common.sh ] && source lib/common.sh || {
+if source "$(dirname "${BASH_SOURCE[0]}")/common.sh"; then
+    load_logger $0
+    check_root || exit 1
+else
     echo "Failed to source common.sh" >&2
     exit 1
-}
-
-loard_logger $0
-check_root
+fi
 
 # パッケージインストール関数
 install_packages() {
@@ -27,6 +26,8 @@ install_packages() {
         log info "Installing packages: ${to_install[*]}"
         apt-get update || log error "apt update failed"
         apt-get install -y "${to_install[@]}" || log error "apt install failed"
+    else
+        log info "Pacages already installd"
     fi
 }
 
@@ -51,7 +52,7 @@ install_utils() {
     install_yq
 }
 
-# yqのインストール
+# go-yqのインストール
 install_yq() {
     if ! [ -f /usr/local/bin/yq ]; then
         log info "Installing yq..."

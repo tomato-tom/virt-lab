@@ -1,22 +1,19 @@
 #!/bin/bash
-#
-#コンテナを削除
-
-# sudo ./remove_container.sh <name>
+# remove_container.sh
+# コンテナを削除
+# 例:
+# sudo lib/container/remove_container.sh <name>
 
 NAME=$1
 SERVICE="container-${NAME}"
-LOGGER="../lib/logger.sh"
 
-cd $(dirname ${BASH_SOURCE:-$0})
-
-[ -f lib/common.sh ] && source lib/common.sh || {
+if source "$(dirname "${BASH_SOURCE[0]}")/../common.sh"; then
+    load_logger $0
+    check_root || exit 1
+else
     echo "Failed to source common.sh" >&2
     exit 1
-}
-load_logger $0
-check_root || exit 1
-
+fi
 
 if [ -z "$NAME" ]; then
     echo "Usage: $0 <name>"
@@ -24,7 +21,7 @@ if [ -z "$NAME" ]; then
 fi
 
 log info "Stopping container $NAME"
-./stop_container.sh "$NAME"
+$(dirname ${BASH_SOURCE[0]})/stop_container.sh "$NAME"
 
 if machinectl remove "$NAME"; then
     log info "successfully removed: $NAME"

@@ -1,4 +1,5 @@
 #!/bin/bash
+# name: logger.sh
 
 # 使用例
 # source lib/logger.sh $0
@@ -7,8 +8,8 @@
 # log error "file not found: file"
 
 # ログファイル設定
-SOURCE_SCRIPT="$1"
-LOG_FILE="logs/script.log"
+SOURCE_SCRIPT=$(basename "$1")
+LOG_FILE="$(dirname "${BASH_SOURCE[0]}")/../logs/script.log"
 LOG_MAX_SIZE=$((1024*1024))  # 1MB (バイト単位)
 LOG_MAX_FILES=3              # 保持するログファイルの最大数
 
@@ -18,7 +19,7 @@ COLOR_INFO="\033[32m"    # Green
 COLOR_WARN="\033[33m"    # Yellow
 COLOR_ERROR="\033[31m"   # Red
 
-mkdir -p logs
+mkdir -p $(dirname "${BASH_SOURCE[0]}")/../logs
 
 # ログローテーション関数
 rotate_log() {

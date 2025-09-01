@@ -6,11 +6,9 @@
 
 # lib/logger.sh の読み込み
 load_logger() {
-    if [ -f lib/logger.sh ]; then
-      source lib/logger.sh $1
-    else
-      echo "Error: logger.sh not found in lib"
-      exit 1
+    if ! source "$(dirname "${BASH_SOURCE[0]}")/logger.sh"; then
+        echo "Failed to source logger.sh" >&2
+        return 1
     fi
 }
 
@@ -22,9 +20,5 @@ check_root() {
   fi
 }
 
-# 設定読み込み
-load_config() {
-    local config_file="${1:-config/default.conf}"
-    [ -f "$config_file" ] && source "$config_file" || return 1
-}
+load_logger
 

@@ -1,7 +1,7 @@
 #!/bin/bash
 # ネットワーク名前空間管理
 
-source lib/common.sh
+source $(dirname "${BASH_SOURCE[0]}")/..//common.sh
 
 create_netns() {
     local ns="$1"

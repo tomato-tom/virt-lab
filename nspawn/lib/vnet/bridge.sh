@@ -1,11 +1,13 @@
 #!/bin/bash
+# bridge.sh
 # Bridge management functions
+# lib/vnet/bridge.sh
 
 cd $(dirname ${BASH_SOURCE:-$0})
 cd ../
 
-source lib/query.sh
-source lib/logger.sh
+source $(dirname "${BASH_SOURCE[0]}")/../query.sh
+source $(dirname "${BASH_SOURCE[0]}")/../logger.sh
 
 create_bridge() {
     local bridge="$1"
